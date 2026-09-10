@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Scadenze & Pagamenti</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 bg-slate-50 antialiased flex flex-col selection:bg-sky-500 selection:text-white">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                    <i class="fa-solid fa-receipt text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-base sm:text-lg leading-tight">Gestione Scadenze</h1>
+                    <div class="flex items-center space-x-2 text-xs text-slate-500">
+                        <span id="syncStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                            Locale & Cloud Pronti
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header Utility Actions -->
+            <div class="flex items-center flex-wrap gap-2 text-xs">
+                <div id="authUserContainer" class="flex items-center space-x-2">
+                    <button onclick="openAuthModal()" id="loginBtnHeader" class="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm">
+                        <i class="fa-solid fa-user"></i>
+                        <span>Accedi / Registrati</span>
+                    </button>
+                    <div id="userProfileHeader" class="hidden items-center space-x-2 bg-slate-100 px-2 py-1 rounded-xl border border-slate-200">
+                        <div class="w-6 h-6 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-xs" id="userAvatar">
+                            U
+                        </div>
+                        <span id="userEmailDisplay" class="font-semibold text-slate-700 text-xs max-w-[120px] sm:max-w-[180px] truncate">user@email.com</span>
+                        <button onclick="handleLogout()" title="Disconnetti" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="copyForGoogleSheets()" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    <span>Copia per Sheets</span>
+                </button>
+
+                <button onclick="openBackupModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-database text-slate-500"></i>
+                    <span class="hidden sm:inline">Backup & CSV</span>
+                </button>
+
+                <button onclick="openEmailModal()" class="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold rounded-xl border border-sky-200 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-envelope text-sky-600"></i>
+                    <span class="hidden sm:inline">Notifiche Mail</span>
+                </button>
+
+                <button onclick="openFirebaseModal()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold rounded-xl border border-amber-200 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-cloud text-amber-600"></i>
+                    <span class="hidden md:inline">Firebase Cloud</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Metrics Dashboard Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card Totale da Pagare -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Totale Da Pagare</p>
+                    <h3 id="metricPendingAmount" class="text-2xl font-extrabold text-slate-900 mt-1">€ 0.00</h3>
+                    <p id="metricPendingCount" class="text-xs text-slate-500 mt-0.5">0 scadenze attive</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+
+            <!-- Card Scadute / Oggi -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Scadute / In Scadenza</p>
+                    <h3 id="metricOverdueCount" class="text-2xl font-extrabold text-rose-600 mt-1">0</h3>
+                    <p id="metricOverdueSub" class="text-xs text-rose-500 font-medium mt-0.5">Richiedono attenzione</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+            </div>
+
+            <!-- Card Prossima Scadenza -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Prossimo Pagamento</p>
+                    <h3 id="metricNextDesc" class="text-base font-bold text-slate-800 mt-1 truncate max-w-[160px]">Nessuno</h3>
+                    <p id="metricNextDate" class="text-xs text-sky-600 font-semibold mt-0.5">-</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-calendar-day"></i>
+                </div>
+            </div>
+
+            <!-- Card Totale Saldato -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Totale Gia Pagato</p>
+                    <h3 id="metricPaidAmount" class="text-2xl font-extrabold text-emerald-600 mt-1">€ 0.00</h3>
+                    <p id="metricPaidCount" class="text-xs text-emerald-600 font-medium mt-0.5">0 scadenze saldate</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-plus text-sky-600 text-lg"></i>
+                    <h2 class="font-bold text-slate-800 text-sm sm:text-base">Nuova Scadenza</h2>
+                </div>
+                <span class="text-xs text-slate-400">Tutti i campi contrassegnati da * sono obbligatori</span>
+            </div>
+            
+            <form id="addScadenzaForm" onsubmit="handleAddScadenza(event)" class="p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                    <!-- Descrizione -->
+                    <div class="lg:col-span-4">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Descrizione *</label>
+                        <input type="text" id="inputDesc" placeholder="Es. Bolletta Luce, Mutuo Casa..." required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                    </div>
+
+                    <!-- Data Scadenza -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Data Scadenza *</label>
+                        <input type="date" id="inputDate" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                    </div>
+
+                    <!-- Importo (€) -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Importo (€) *</label>
+                        <input type="number" step="0.01" min="0" id="inputPrice" placeholder="0.00" required
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                    </div>
+
+                    <!-- Categoria -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Categoria</label>
+                        <select id="inputCategory" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                            <option value="Bollette">Bollette</option>
+                            <option value="Casa & Mutuo">Casa & Mutuo</option>
+                            <option value="Abbonamenti">Abbonamenti</option>
+                            <option value="Auto & Trasporti">Auto & Trasporti</option>
+                            <option value="Tasse & Imposte">Tasse & Imposte</option>
+                            <option value="Salute & Spese">Salute & Spese</option>
+                            <option value="Altro" selected>Altro</option>
+                        </select>
+                    </div>
+
+                    <!-- Ricorrenza -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Ricorrenza</label>
+                        <select id="inputFrequency" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+                            <option value="Una Tantum" selected>Una Tantum</option>
+                            <option value="Mensile">Mensile</option>
+                            <option value="Bimestrale">Bimestrale</option>
+                            <option value="Trimestrale">Trimestrale</option>
+                            <option value="Semestrale">Semestrale</option>
+                            <option value="Annuale">Annuale</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-end">
+                    <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm rounded-xl shadow-md shadow-sky-500/20 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Aggiungi Scadenza</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+                
+                <!-- Filter Tabs -->
+                <div class="flex items-center overflow-x-auto space-x-1 pb-1 md:pb-0 text-xs font-semibold">
+                    <button onclick="setFilter('all')" id="tab-all" class="filter-tab px-3.5 py-2 rounded-xl bg-sky-600 text-white shadow-sm transition">
+                        Tutti (<span id="cnt-all">0</span>)
+                    </button>
+                    <button onclick="setFilter('pending')" id="tab-pending" class="filter-tab px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition">
+                        Da Pagare (<span id="cnt-pending">0</span>)
+                    </button>
+                    <button onclick="setFilter('overdue')" id="tab-overdue" class="filter-tab px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition">
+                        Scaduti (<span id="cnt-overdue">0</span>)
+                    </button>
+                    <button onclick="setFilter('paid')" id="tab-paid" class="filter-tab px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition">
+                        Pagati (<span id="cnt-paid">0</span>)
+                    </button>
+                </div>
+
+                <!-- Search Input & Sorting -->
+                <div class="flex items-center space-x-2 w-full md:w-auto">
+                    <div class="relative flex-1 md:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="searchInput" oninput="renderScadenze()" placeholder="Cerca descrizione..."
+                            class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none transition">
+                    </div>
+                    <select id="sortSelect" onchange="renderScadenze()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white outline-none">
+                        <option value="date-asc">Data (Crescente)</option>
+                        <option value="date-desc">Data (Decrescente)</option>
+                        <option value="price-desc">Importo più alto</option>
+                        <option value="price-asc">Importo più basso</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Desktop Table View (Hidden on mobile) -->
+            <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <th class="py-3.5 px-4">Stato</th>
+                                <th class="py-3.5 px-4">Descrizione</th>
+                                <th class="py-3.5 px-4">Scadenza</th>
+                                <th class="py-3.5 px-4 text-right">Importo</th>
+                                <th class="py-3.5 px-4">Categoria</th>
+                                <th class="py-3.5 px-4">Ricorrenza</th>
+                                <th class="py-3.5 px-4 text-center">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scadenzeTableBody" class="divide-y divide-slate-100 text-xs">
+                            <!-- Populated via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Mobile Cards View (Visible only on mobile) -->
+            <div id="scadenzeMobileCards" class="grid grid-cols-1 gap-3 md:hidden">
+                <!-- Populated via JavaScript -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mx-auto mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <h3 class="font-bold text-slate-700 text-sm sm:text-base">Nessuna Scadenza Trovata</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Non ci sono scadenze registrate con i filtri selezionati. Aggiungine una nuova dal modulo in alto.</p>
+            </div>
+        </section>
+    </main>
+
+
+    <!-- Modal Modifica Scadenza -->
+    <div id="editModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-lg w-full overflow-hidden transform transition-all">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-sky-600 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base">Modifica Scadenza</h3>
+                </div>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="editScadenzaForm" onsubmit="handleSaveEditScadenza(event)">
+                <input type="hidden" id="editItemId">
+                <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Descrizione *</label>
+                        <input type="text" id="editInputDesc" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Data Scadenza *</label>
+                        <input type="date" id="editInputDate" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Importo (€) *</label>
+                        <input type="number" step="0.01" min="0" id="editInputPrice" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Categoria</label>
+                        <select id="editInputCategory" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none bg-white">
+                            <option value="Bollette">Bollette</option>
+                            <option value="Casa & Mutuo">Casa & Mutuo</option>
+                            <option value="Abbonamenti">Abbonamenti</option>
+                            <option value="Auto & Trasporti">Auto & Trasporti</option>
+                            <option value="Tasse & Imposte">Tasse & Imposte</option>
+                            <option value="Salute & Spese">Salute & Spese</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Ricorrenza</label>
+                        <select id="editInputFrequency" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none bg-white">
+                            <option value="Una Tantum">Una Tantum</option>
+                            <option value="Mensile">Mensile</option>
+                            <option value="Bimestrale">Bimestrale</option>
+                            <option value="Trimestrale">Trimestrale</option>
+                            <option value="Semestrale">Semestrale</option>
+                            <option value="Annuale">Annuale</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-end space-x-2">
+                    <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">
+                        Annulla
+                    </button>
+                    <button type="submit" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition shadow">
+                        Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Backup & CSV -->
+    <div id="backupModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-database text-slate-600"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Backup, CSV & Ripristino</h3>
+                </div>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs text-slate-600">
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">Esporta Dati</h4>
+                    <p class="text-slate-500 mb-2">Scarica i tuoi dati per conservarli in una cartella o importarli su Google Sheets.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="downloadBackupJSON()" class="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Backup (.JSON)</span>
+                        </button>
+                        <button onclick="exportCSV()" class="w-full px-3 py-2 bg-emerald-50 hover:bg-emerald-100 font-bold text-emerald-700 border border-emerald-200 rounded-xl transition flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-file-csv"></i>
+                            <span>Esporta CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1">Ripristina da File Backup</h4>
+                    <p class="text-slate-500 mb-2">Seleziona un file `.json` salvato in precedenza per caricare i dati.</p>
+                    <input type="file" id="importJsonInput" accept=".json" onchange="importBackupJSON(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Notifiche Email -->
+    <div id="emailModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-envelope text-sky-600 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Notifiche & Promemoria Email</h3>
+                </div>
+                <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs text-slate-600">
+                <p class="text-slate-500">Puoi inviare istantaneamente un promemoria via mail con il riepilogo di tutte le scadenze aperte o imminenti.</p>
+                <button onclick="sendInstantEmailSummary()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Invia Promemoria Email Ora</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurazione Firebase -->
+    <div id="firebaseModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-lg w-full overflow-hidden">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-cloud text-amber-500 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Configurazione Firebase Cloud</h3>
+                </div>
+                <button onclick="closeFirebaseModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3 text-xs text-slate-600">
+                <p class="text-slate-500">Incolla qui il JSON di configurazione `firebaseConfig` per attivare la sincronizzazione automatica multi-dispositivo.</p>
+                <textarea id="firebaseConfigTextarea" rows="6" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }' class="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button onclick="saveFirebaseConfig()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition">
+                        Salva e Connetti
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Autenticazione Email -->
+    <div id="authModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden transform transition-all">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-envelope-circle-check text-sky-600 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base">Autenticazione Utente</h3>
+                </div>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-5">
+                <!-- Auth Tabs -->
+                <div class="flex border-b border-slate-200 mb-4 text-xs font-bold">
+                    <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sky-600 border-b-2 border-sky-600 transition text-center">Accedi</button>
+                    <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition text-center">Registrati</button>
+                </div>
+
+                <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Indirizzo Email *</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="email" id="authEmail" required placeholder="nome@esempio.it" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-sky-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Password *</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="password" id="authPassword" minlength="6" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-sky-500">
+                        </div>
+                    </div>
+
+                    <div id="authErrorMessage" class="hidden p-2.5 rounded-xl bg-rose-50 text-rose-700 text-xs border border-rose-200"></div>
+
+                    <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span id="authSubmitText">Accedi con Email</span>
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <button onclick="closeAuthModal()" class="text-xs text-slate-400 hover:text-slate-600 transition">
+                        Continua come Ospite (Modalità Locale)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Floating Banner -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            signInAnonymously,
+            signInWithCustomToken
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global State & Auth setup
+        window.scadenze = [];
+        window.currentFilter = 'all';
+        window.authMode = 'login';
+        window.currentUser = null;
+
+        // Default Demo Firebase Config placeholder or Environment config
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'scadenziario-app';
+        let firebaseConfig = null;
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
+        } catch(e) {}
+
+        let auth = null;
+        let db = null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            // Listen to Auth State Changes
+            onAuthStateChanged(auth, (user) => {
+                window.currentUser = user;
+                window.updateUserUI(user);
+                if (user) {
+                    window.loadUserScadenze(user.uid);
+                } else {
+                    window.loadLocalStorage();
+                    window.renderScadenze();
+                }
+            });
+        }
+
+        // Auth Tabs Toggle
+        window.switchAuthTab = function(mode) {
+            window.authMode = mode;
+            const tabLogin = document.getElementById('tabLogin');
+            const tabRegister = document.getElementById('tabRegister');
+            const submitText = document.getElementById('authSubmitText');
+            const errBox = document.getElementById('authErrorMessage');
+            errBox.classList.add('hidden');
+
+            if (mode === 'login') {
+                tabLogin.className = 'flex-1 py-2 text-sky-600 border-b-2 border-sky-600 transition text-center font-bold';
+                tabRegister.className = 'flex-1 py-2 text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition text-center font-bold';
+                submitText.innerText = 'Accedi con Email';
+            } else {
+                tabRegister.className = 'flex-1 py-2 text-sky-600 border-b-2 border-sky-600 transition text-center font-bold';
+                tabLogin.className = 'flex-1 py-2 text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition text-center font-bold';
+                submitText.innerText = 'Crea Nuovo Account';
+            }
+        };
+
+        window.openAuthModal = function() {
+            document.getElementById('authModalContainer').classList.remove('hidden');
+        };
+
+        window.closeAuthModal = function() {
+            document.getElementById('authModalContainer').classList.add('hidden');
+        };
+
+        // Form Submit for Authentication (Login / Sign Up)
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errBox = document.getElementById('authErrorMessage');
+            errBox.classList.add('hidden');
+
+            if (!email || !password) return;
+
+            try {
+                if (auth) {
+                    if (window.authMode === 'login') {
+                        await signInWithEmailAndPassword(auth, email, password);
+                        window.showToast('Accesso effettuato con successo!', 'success');
+                    } else {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        window.showToast('Account creato con successo!', 'success');
+                    }
+                } else {
+                    // Fallback Local Auth Mode when cloud is not initialized yet
+                    window.currentUser = { email: email, uid: 'local_' + btoa(email).substring(0, 10) };
+                    window.updateUserUI(window.currentUser);
+                    window.loadLocalStorage();
+                    window.showToast(`Connesso in locale come ${email}`, 'success');
+                }
+                window.closeAuthModal();
+            } catch (error) {
+                console.error("Auth error:", error);
+                errBox.innerText = getFriendlyAuthError(error.code || error.message);
+                errBox.classList.remove('hidden');
+            }
+        };
+
+        window.handleLogout = async function() {
+            if (auth && auth.currentUser) {
+                await signOut(auth);
+            }
+            window.currentUser = null;
+            window.updateUserUI(null);
+            window.loadLocalStorage();
+            window.renderScadenze();
+            window.showToast('Disconnessione effettuata', 'info');
+        };
+
+        window.updateUserUI = function(user) {
+            const loginBtn = document.getElementById('loginBtnHeader');
+            const profileHeader = document.getElementById('userProfileHeader');
+            const emailDisplay = document.getElementById('userEmailDisplay');
+            const avatar = document.getElementById('userAvatar');
+
+            if (user && user.email) {
+                loginBtn.classList.add('hidden');
+                profileHeader.classList.remove('hidden');
+                profileHeader.classList.add('flex');
+                emailDisplay.innerText = user.email;
+                avatar.innerText = user.email.charAt(0).toUpperCase();
+            } else {
+                loginBtn.classList.remove('hidden');
+                profileHeader.classList.add('hidden');
+                profileHeader.classList.remove('flex');
+            }
+        };
+
+        function getFriendlyAuthError(code) {
+            if (code.includes('user-not-found') || code.includes('invalid-credential')) return 'Credenziali non valide o utente non trovato.';
+            if (code.includes('wrong-password')) return 'Password errata.';
+            if (code.includes('email-already-in-use')) return 'Email già registrata. Prova ad accedere.';
+            if (code.includes('weak-password')) return 'La password deve avere almeno 6 caratteri.';
+            return 'Errore durante l\'autenticazione: ' + code;
+        }
+
+        window.loadUserScadenze = function(userId) {
+            if (!db || !userId) {
+                window.loadLocalStorage();
+                window.renderScadenze();
+                return;
+            }
+            const userColRef = collection(db, 'artifacts', appId, 'users', userId, 'scadenze');
+            onSnapshot(userColRef, (snapshot) => {
+                const loaded = [];
+                snapshot.forEach(docSnap => {
+                    loaded.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                if (loaded.length > 0) {
+                    window.scadenze = loaded;
+                } else {
+                    window.loadLocalStorage();
+                }
+                window.renderScadenze();
+            }, (err) => {
+                console.error("Firestore read error", err);
+                window.loadLocalStorage();
+                window.renderScadenze();
+            });
+        };
+
+        // Load data on window load
+        window.addEventListener('load', function() {
+            if (!auth) {
+                window.loadLocalStorage();
+                window.renderScadenze();
+            }
+        });
+
+        // Load from Local Storage
+        window.loadLocalStorage = function() {
+            try {
+                const storageKey = window.currentUser ? `scadenze_${window.currentUser.uid}` : 'scadenze_list_data';
+                const data = localStorage.getItem(storageKey);
+                if (data) {
+                    window.scadenze = JSON.parse(data);
+                } else {
+                    window.scadenze = [
+                        { id: '1', desc: 'Bolletta Luce Enel', date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], price: 84.50, category: 'Bollette', frequency: 'Bimestrale', paid: false },
+                        { id: '2', desc: 'Abbonamento Netflix', date: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0], price: 17.99, category: 'Abbonamenti', frequency: 'Mensile', paid: false },
+                        { id: '3', desc: 'Assicurazione Auto', date: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0], price: 420.00, category: 'Auto & Trasporti', frequency: 'Annuale', paid: false }
+                    ];
+                    window.saveToLocalStorage();
+                }
+            } catch (e) {
+                console.error("Errore nel caricamento del localStorage", e);
+                window.scadenze = [];
+            }
+        };
+
+        // Save state to Local Storage and Firestore if available
+        window.saveToLocalStorage = function() {
+            try {
+                const storageKey = window.currentUser ? `scadenze_${window.currentUser.uid}` : 'scadenze_list_data';
+                localStorage.setItem(storageKey, JSON.stringify(window.scadenze));
+                
+                if (db && window.currentUser && window.currentUser.uid) {
+                    const userId = window.currentUser.uid;
+                    window.scadenze.forEach(item => {
+                        const itemDoc = doc(db, 'artifacts', appId, 'users', userId, 'scadenze', item.id);
+                        setDoc(itemDoc, item, { merge: true });
+                    });
+                }
+            } catch (e) {
+                console.error("Errore nel salvataggio", e);
+            }
+        };
+
+        // Save Scadenza Item
+        window.saveScadenzaItem = function(item) {
+            const idx = window.scadenze.findIndex(i => i.id === item.id);
+            if (idx >= 0) {
+                window.scadenze[idx] = item;
+            } else {
+                window.scadenze.push(item);
+            }
+            window.saveToLocalStorage();
+            window.renderScadenze();
+        };
+
+        // Delete Scadenza Item
+        window.deleteScadenzaItem = function(id) {
+            window.scadenze = window.scadenze.filter(i => i.id !== id);
+            window.saveToLocalStorage();
+            window.renderScadenze();
+            window.showToast('Scadenza eliminata con successo', 'info');
+        };
+
+        // Toggle Paid Status
+        window.togglePaidStatus = function(id) {
+            const item = window.scadenze.find(i => i.id === id);
+            if (!item) return;
+            item.paid = !item.paid;
+            window.saveToLocalStorage();
+            window.renderScadenze();
+            window.showToast(item.paid ? 'Segnata come pagata!' : 'Ripristinata come da pagare', 'success');
+        };
+
+        // Form Submit Handler
+        window.handleAddScadenza = function(e) {
+            e.preventDefault();
+            const desc = document.getElementById('inputDesc').value.trim();
+            const date = document.getElementById('inputDate').value;
+            const price = parseFloat(document.getElementById('inputPrice').value) || 0;
+            const category = document.getElementById('inputCategory').value;
+            const frequency = document.getElementById('inputFrequency').value;
+
+            if (!desc || !date) return;
+
+            const newItem = {
+                id: Date.now().toString(),
+                desc,
+                date,
+                price,
+                category,
+                frequency,
+                paid: false
+            };
+
+            window.saveScadenzaItem(newItem);
+            document.getElementById('addScadenzaForm').reset();
+            window.showToast('Nuova scadenza aggiunta!', 'success');
+        };
+
+        // Modal Edit Handlers
+        window.openEditModal = function(id) {
+            const item = window.scadenze.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('editItemId').value = item.id;
+            document.getElementById('editInputDesc').value = item.desc || '';
+            document.getElementById('editInputDate').value = item.date || '';
+            document.getElementById('editInputPrice').value = item.price || 0;
+            document.getElementById('editInputCategory').value = item.category || 'Altro';
+            document.getElementById('editInputFrequency').value = item.frequency || 'Una Tantum';
+
+            document.getElementById('editModalContainer').classList.remove('hidden');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('editModalContainer').classList.add('hidden');
+        };
+
+        window.handleSaveEditScadenza = function(e) {
+            e.preventDefault();
+            const id = document.getElementById('editItemId').value;
+            const item = window.scadenze.find(i => i.id === id);
+            if (!item) return;
+
+            const desc = document.getElementById('editInputDesc').value.trim();
+            const date = document.getElementById('editInputDate').value;
+            const price = parseFloat(document.getElementById('editInputPrice').value) || 0;
+            const category = document.getElementById('editInputCategory').value;
+            const frequency = document.getElementById('editInputFrequency').value;
+
+            if (!desc || !date) return;
+
+            item.desc = desc;
+            item.date = date;
+            item.price = price;
+            item.category = category;
+            item.frequency = frequency;
+
+            window.saveScadenzaItem(item);
+            window.closeEditModal();
+            window.showToast('Scadenza aggiornata!', 'success');
+        };
+
+        // Filter Setting
+        window.setFilter = function(filter) {
+            window.currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('bg-sky-600', 'text-white', 'shadow-sm');
+                tab.classList.add('text-slate-600', 'hover:bg-slate-100');
+            });
+
+            const activeTab = document.getElementById(`tab-${filter}`);
+            if (activeTab) {
+                activeTab.classList.remove('text-slate-600', 'hover:bg-slate-100');
+                activeTab.classList.add('bg-sky-600', 'text-white', 'shadow-sm');
+            }
+            window.renderScadenze();
+        };
+
+        window.renderScadenze = function() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const searchVal = (document.getElementById('searchInput').value || '').toLowerCase();
+            const sortVal = document.getElementById('sortSelect').value;
+
+            // Calculate Metrics
+            let totalPending = 0;
+            let pendingCount = 0;
+            let overdueCount = 0;
+            let totalPaid = 0;
+            let paidCount = 0;
+            let nextUpcoming = null;
+
+            window.scadenze.forEach(item => {
+                const itemDate = new Date(item.date);
+                itemDate.setHours(0,0,0,0);
+                const price = Number(item.price) || 0;
+
+                if (item.paid) {
+                    totalPaid += price;
+                    paidCount++;
+                } else {
+                    totalPending += price;
+                    pendingCount++;
+                    if (itemDate < today) {
+                        overdueCount++;
+                    }
+                    if (itemDate >= today) {
+                        if (!nextUpcoming || itemDate < new Date(nextUpcoming.date)) {
+                            nextUpcoming = item;
+                        }
+                    }
+                }
+            });
+
+            // Update Metrics UI
+            document.getElementById('metricPendingAmount').innerText = `€ ${totalPending.toFixed(2)}`;
+            document.getElementById('metricPendingCount').innerText = `${pendingCount} scadenze attive`;
+            document.getElementById('metricOverdueCount').innerText = overdueCount;
+            document.getElementById('metricPaidAmount').innerText = `€ ${totalPaid.toFixed(2)}`;
+            document.getElementById('metricPaidCount').innerText = `${paidCount} saldate`;
+
+            if (nextUpcoming) {
+                document.getElementById('metricNextDesc').innerText = nextUpcoming.desc;
+                document.getElementById('metricNextDate').innerText = new Date(nextUpcoming.date).toLocaleDateString('it-IT');
+            } else {
+                document.getElementById('metricNextDesc').innerText = 'Nessuna';
+                document.getElementById('metricNextDate').innerText = '-';
+            }
+
+            // Update Tab Badge Counts
+            document.getElementById('cnt-all').innerText = window.scadenze.length;
+            document.getElementById('cnt-pending').innerText = pendingCount;
+            document.getElementById('cnt-overdue').innerText = overdueCount;
+            document.getElementById('cnt-paid').innerText = paidCount;
+
+            // Filter Array
+            let filtered = window.scadenze.filter(item => {
+                const itemDate = new Date(item.date);
+                itemDate.setHours(0,0,0,0);
+
+                if (window.currentFilter === 'pending' && item.paid) return false;
+                if (window.currentFilter === 'paid' && !item.paid) return false;
+                if (window.currentFilter === 'overdue' && (item.paid || itemDate >= today)) return false;
+
+                if (searchVal && !item.desc.toLowerCase().includes(searchVal) && !(item.category || '').toLowerCase().includes(searchVal)) {
+                    return false;
+                }
+                return true;
+            });
+
+            // Sort Array
+            filtered.sort((a, b) => {
+                if (sortVal === 'date-asc') return new Date(a.date) - new Date(b.date);
+                if (sortVal === 'date-desc') return new Date(b.date) - new Date(a.date);
+                if (sortVal === 'price-desc') return (b.price || 0) - (a.price || 0);
+                if (sortVal === 'price-asc') return (a.price || 0) - (b.price || 0);
+                return 0;
+            });
+
+            const tableBody = document.getElementById('scadenzeTableBody');
+            const mobileCardsContainer = document.getElementById('scadenzeMobileCards');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '';
+                mobileCardsContainer.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Desktop Table HTML
+            tableBody.innerHTML = filtered.map(item => {
+                const itemDate = new Date(item.date);
+                itemDate.setHours(0,0,0,0);
+                const isOverdue = !item.paid && itemDate < today;
+                const isToday = !item.paid && itemDate.getTime() === today.getTime();
+
+                let badge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Da Pagare</span>`;
+                if (item.paid) {
+                    badge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check mr-1"></i> Pagato</span>`;
+                } else if (isOverdue) {
+                    badge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Scaduto</span>`;
+                } else if (isToday) {
+                    badge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock mr-1"></i> Oggi</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition ${item.paid ? 'opacity-60 bg-slate-50/50' : ''}">
+                        <td class="py-3 px-4">${badge}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-800">${item.desc}</td>
+                        <td class="py-3 px-4 font-mono text-xs ${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-600'}">${new Date(item.date).toLocaleDateString('it-IT')}</td>
+                        <td class="py-3 px-4 text-right font-bold ${item.paid ? 'text-slate-500' : 'text-slate-900'}">€ ${(Number(item.price)||0).toFixed(2)}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 bg-slate-100 rounded-md text-xs text-slate-600 font-medium">${item.category || 'Altro'}</span></td>
+                        <td class="py-3 px-4 text-xs text-slate-500">${item.frequency || 'Una Tantum'}</td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <button onclick="togglePaidStatus('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition text-xs font-semibold ${item.paid ? 'text-amber-600' : 'text-emerald-600'}" title="Segna come ${item.paid ? 'Da Pagare' : 'Pagato'}">
+                                    <i class="fa-solid ${item.paid ? 'fa-rotate-left' : 'fa-check'}"></i>
+                                </button>
+                                <button onclick="openEditModal('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 text-sky-600 transition text-xs" title="Modifica">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteScadenzaItem('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-600 transition text-xs" title="Elimina">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Mobile Cards HTML
+            mobileCardsContainer.innerHTML = filtered.map(item => {
+                const itemDate = new Date(item.date);
+                itemDate.setHours(0,0,0,0);
+                const isOverdue = !item.paid && itemDate < today;
+
+                return `
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-3 ${item.paid ? 'opacity-70 bg-slate-50/50' : ''}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <span class="font-bold text-slate-900 text-sm block">${item.desc}</span>
+                                <span class="inline-block mt-1 px-2 py-0.5 bg-slate-100 rounded text-[11px] font-medium text-slate-600">${item.category || 'Altro'}</span>
+                            </div>
+                            <span class="font-extrabold text-base ${item.paid ? 'text-slate-400' : 'text-slate-900'}">€ ${(Number(item.price)||0).toFixed(2)}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                            <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(item.date).toLocaleDateString('it-IT')}</span>
+                            <span class="font-semibold ${isOverdue ? 'text-rose-600' : 'text-slate-600'}">${item.frequency || 'Una Tantum'}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-2">
+                            <button onclick="togglePaidStatus('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-bold ${item.paid ? 'bg-amber-50 text-amber-700' : 'bg-emerald-600 text-white'} shadow-sm">
+                                ${item.paid ? 'Segna Da Pagare' : 'Segna Pagato'}
+                            </button>
+                            <div class="flex items-center space-x-1">
+                                <button onclick="openEditModal('${item.id}')" class="px-3 py-1.5 text-xs text-sky-600 font-semibold hover:bg-sky-50 rounded-xl transition">
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i> Modifica
+                                </button>
+                                <button onclick="deleteScadenzaItem('${item.id}')" class="px-3 py-1.5 text-xs text-rose-600 font-semibold hover:bg-rose-50 rounded-xl transition">
+                                    <i class="fa-solid fa-trash mr-1"></i> Elimina
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.copyForGoogleSheets = function() {
+            if (!window.scadenze || window.scadenze.length === 0) {
+                window.showToast('Nessun dato da copiare', 'info');
+                return;
+            }
+            let tsv = 'Data Scadenza\tDescrizione\tImporto (€)\tCategoria\tRicorrenza\tStato\n';
+            window.scadenze.forEach(item => {
+                const status = item.paid ? 'Pagato' : 'Da Pagare';
+                tsv += `${item.date}\t${item.desc}\t${Number(item.price).toFixed(2)}\t${item.category}\t${item.frequency}\t${status}\n`;
+            });
+
+            const textarea = document.createElement('textarea');
+            textarea.value = tsv;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            window.showToast('Copiato! Apri Google Sheets e premi CTRL+V', 'success');
+        };
+
+        window.exportCSV = function() {
+            if (!window.scadenze || window.scadenze.length === 0) {
+                window.showToast('Nessun dato da esportare', 'info');
+                return;
+            }
+            let csv = 'Data;Descrizione;Importo;Categoria;Ricorrenza;Stato\n';
+            window.scadenze.forEach(item => {
+                const status = item.paid ? 'Pagato' : 'Da Pagare';
+                csv += `"${item.date}";"${item.desc}";"${Number(item.price).toFixed(2)}";"${item.category}";"${item.frequency}";"${status}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Scadenze_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            window.showToast('File CSV scaricato con successo', 'success');
+        };
+
+        window.downloadBackupJSON = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.scadenze, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `Backup_Scadenze_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.click();
+            window.showToast('Backup JSON scaricato', 'success');
+        };
+
+        window.importBackupJSON = function(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (Array.isArray(parsed)) {
+                        window.scadenze = parsed;
+                        window.saveToLocalStorage();
+                        window.renderScadenze();
+                        window.closeBackupModal();
+                        window.showToast('Dati ripristinati con successo!', 'success');
+                    } else {
+                        window.showToast('File non valido', 'error');
+                    }
+                } catch (err) {
+                    window.showToast('Errore nella lettura del file JSON', 'error');
+                }
+            };
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+        };
+
+        // Modal Controls
+        window.openBackupModal = function() { document.getElementById('backupModalContainer').classList.remove('hidden'); };
+        window.closeBackupModal = function() { document.getElementById('backupModalContainer').classList.add('hidden'); };
+        window.openEmailModal = function() { document.getElementById('emailModalContainer').classList.remove('hidden'); };
+        window.closeEmailModal = function() { document.getElementById('emailModalContainer').classList.add('hidden'); };
+        window.openFirebaseModal = function() { document.getElementById('firebaseModalContainer').classList.remove('hidden'); };
+        window.closeFirebaseModal = function() { document.getElementById('firebaseModalContainer').classList.add('hidden'); };
+
+        window.sendInstantEmailSummary = function() {
+            const pending = window.scadenze.filter(i => !i.paid);
+            if (pending.length === 0) {
+                window.showToast('Nessuna scadenza in sospeso da inviare', 'info');
+                return;
+            }
+
+            let bodyText = "Riepilogo Scadenze in Sospeso:\n\n";
+            pending.forEach(i => {
+                bodyText += `- ${i.desc}: €${Number(i.price).toFixed(2)} (Scadenza: ${i.date})\n`;
+            });
+
+            const mailtoUrl = `mailto:?subject=Riepilogo Scadenze&body=${encodeURIComponent(bodyText)}`;
+            window.location.href = mailtoUrl;
+            window.closeEmailModal();
+        };
+
+        window.showToast = function(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-900 text-white';
+            if (type === 'success') bgClass = 'bg-emerald-600 text-white';
+            if (type === 'error') bgClass = 'bg-rose-600 text-white';
+
+            toast.className = `px-4 py-3 rounded-xl shadow-lg font-medium text-xs pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2 ${bgClass}`;
+            toast.innerHTML = `<span>${msg}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+    </script>
+</body>
+</html>

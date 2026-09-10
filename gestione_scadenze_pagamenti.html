@@ -689,12 +689,7 @@
                 if (data) {
                     window.scadenze = JSON.parse(data);
                 } else {
-                    window.scadenze = [
-                        { id: '1', desc: 'Bolletta Luce Enel', date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], price: 84.50, category: 'Bollette', frequency: 'Bimestrale', paid: false },
-                        { id: '2', desc: 'Abbonamento Netflix', date: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0], price: 17.99, category: 'Abbonamenti', frequency: 'Mensile', paid: false },
-                        { id: '3', desc: 'Assicurazione Auto', date: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0], price: 420.00, category: 'Auto & Trasporti', frequency: 'Annuale', paid: false }
-                    ];
-                    window.saveToLocalStorage();
+                    window.scadenze = [];
                 }
             } catch (e) {
                 console.error("Errore nel caricamento del localStorage", e);

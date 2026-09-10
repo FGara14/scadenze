@@ -88,11 +88,6 @@
                     <i class="fa-solid fa-envelope text-sky-600"></i>
                     <span class="hidden sm:inline">Notifiche Mail</span>
                 </button>
-
-                <button onclick="openFirebaseModal()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold rounded-xl border border-amber-200 transition flex items-center space-x-1.5">
-                    <i class="fa-solid fa-cloud text-amber-600"></i>
-                    <span class="hidden md:inline">Firebase Cloud</span>
-                </button>
             </div>
         </div>
     </header>
@@ -516,24 +511,31 @@
         window.authMode = 'login';
         window.currentUser = null;
 
-        // Default Demo Firebase Config placeholder or Environment config
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'scadenziario-app';
-        let firebaseConfig = null;
-        try {
-            if (typeof __firebase_config !== 'undefined') {
-                firebaseConfig = JSON.parse(__firebase_config);
-            }
-        } catch(e) {}
+        // =========================================================================
+        // 📌 INSERISCI QUI I DATI DEL TUO PROGETTO FIREBASE
+        // Copia l'oggetto firebaseConfig fornito dalla Console di Firebase e incollalo qui:
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhJimN-ng3bmbB4v6PPjNJr9tbBxAVBMc",
+			authDomain: "gestione-spese-ced86.firebaseapp.com",
+			projectId: "gestione-spese-ced86",
+			storageBucket: "gestione-spese-ced86.firebasestorage.app",
+			messagingSenderId: "542334743516",
+			appId: "1:542334743516:web:fbb33e5082856b4add1519",
+			measurementId: "G-QRGECL1X2E"
+        };
 
+        const appId = 'scadenziario-app';
         let auth = null;
         let db = null;
 
-        if (firebaseConfig) {
+        // Inizializzazione automatica se l'API key è stata configurata
+        if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "IL_TUO_API_KEY") {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
 
-            // Listen to Auth State Changes
+            // Ascolta lo stato dell'autenticazione
             onAuthStateChanged(auth, (user) => {
                 window.currentUser = user;
                 window.updateUserUI(user);

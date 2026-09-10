@@ -747,10 +747,55 @@
             window.showToast('Scadenza eliminata con successo', 'info');
         };
 
+        // Helper: calcola la data per il ciclo successivo in base alla ricorrenza
+        function getNextDate(dateStr, frequency) {
+            if (!dateStr) return dateStr;
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+
+            let year = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10) - 1;
+            let day = parseInt(parts[2], 10);
+
+            let monthsToAdd = 0;
+            switch (frequency) {
+                case 'Mensile': monthsToAdd = 1; break;
+                case 'Bimestrale': monthsToAdd = 2; break;
+                case 'Trimestrale': monthsToAdd = 3; break;
+                case 'Semestrale': monthsToAdd = 6; break;
+                case 'Annuale': monthsToAdd = 12; break;
+                default: return dateStr;
+            }
+
+            let targetDate = new Date(year, month + monthsToAdd, day);
+            let yyyy = targetDate.getFullYear();
+            let mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+            let dd = String(targetDate.getDate()).padStart(2, '0');
+
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
         // Toggle Paid Status
         window.togglePaidStatus = function(id) {
             const item = window.scadenze.find(i => i.id === id);
             if (!item) return;
+
+            // Se la scadenza è da pagare ed ha una ricorrenza diversa da "Una Tantum"
+            if (!item.paid && item.frequency && item.frequency !== 'Una Tantum') {
+                const nextDate = getNextDate(item.date, item.frequency);
+                const oldDateFormatted = new Date(item.date).toLocaleDateString('it-IT');
+                const newDateFormatted = new Date(nextDate).toLocaleDateString('it-IT');
+
+                // Avanza la data al periodo successivo e la mantiene "da pagare"
+                item.date = nextDate;
+                item.paid = false;
+
+                window.saveToLocalStorage();
+                window.renderScadenze();
+                window.showToast(`Pagato per ${oldDateFormatted}! Nuova scadenza impostata al ${newDateFormatted}`, 'success');
+                return;
+            }
+
             item.paid = !item.paid;
             window.saveToLocalStorage();
             window.renderScadenze();

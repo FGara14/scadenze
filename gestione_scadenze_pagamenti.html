@@ -503,7 +503,7 @@
             signInAnonymously,
             signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, onSnapshot, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, onSnapshot, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global State & Auth setup
         window.scadenze = [];
@@ -516,13 +516,13 @@
         // Copia l'oggetto firebaseConfig fornito dalla Console di Firebase e incollalo qui:
         // =========================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyBhJimN-ng3bmbB4v6PPjNJr9tbBxAVBMc",
+            apiKey: "AIzaSyAfonORMsWTVwtCqiRs3IEHRCiUoSoMcjE",
 			authDomain: "gestione-spese-ced86.firebaseapp.com",
 			projectId: "gestione-spese-ced86",
 			storageBucket: "gestione-spese-ced86.firebasestorage.app",
 			messagingSenderId: "542334743516",
-			appId: "1:542334743516:web:fbb33e5082856b4add1519",
-			measurementId: "G-QRGECL1X2E"
+			appId: "1:542334743516:web:439e0932ae29e697dd1519",
+			measurementId: "G-52WVW3MCFM"
         };
 
         const appId = 'scadenziario-app';
@@ -660,10 +660,11 @@
                 snapshot.forEach(docSnap => {
                     loaded.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                if (loaded.length > 0) {
-                    window.scadenze = loaded;
-                } else {
-                    window.loadLocalStorage();
+                window.scadenze = loaded;
+                try {
+                    localStorage.setItem(`scadenze_${userId}`, JSON.stringify(loaded));
+                } catch (e) {
+                    console.error("Errore aggiornamento cache locale", e);
                 }
                 window.renderScadenze();
             }, (err) => {
@@ -728,9 +729,20 @@
         };
 
         // Delete Scadenza Item
-        window.deleteScadenzaItem = function(id) {
+        window.deleteScadenzaItem = async function(id) {
             window.scadenze = window.scadenze.filter(i => i.id !== id);
             window.saveToLocalStorage();
+
+            if (db && window.currentUser && window.currentUser.uid) {
+                try {
+                    const userId = window.currentUser.uid;
+                    const itemDoc = doc(db, 'artifacts', appId, 'users', userId, 'scadenze', id);
+                    await deleteDoc(itemDoc);
+                } catch (e) {
+                    console.error("Errore eliminazione da Firestore:", e);
+                }
+            }
+
             window.renderScadenze();
             window.showToast('Scadenza eliminata con successo', 'info');
         };

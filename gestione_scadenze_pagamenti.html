@@ -11,6 +11,9 @@
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
+    <!-- EmailJS SDK CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -392,44 +395,80 @@
 
     <!-- Modal Notifiche Email -->
     <div id="emailModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full overflow-hidden">
-            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-lg w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0">
                 <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-envelope text-sky-600 text-lg"></i>
-                    <h3 class="font-bold text-slate-800 text-sm">Notifiche & Promemoria Email</h3>
+                    <i class="fa-solid fa-bell text-sky-600 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base">Notifiche & Promemoria Automatici</h3>
                 </div>
                 <button onclick="closeEmailModal()" class="text-slate-400 hover:text-slate-600 transition">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <div class="p-5 space-y-4 text-xs text-slate-600">
-                <p class="text-slate-500">Puoi inviare istantaneamente un promemoria via mail con il riepilogo di tutte le scadenze aperte o imminenti.</p>
-                <button onclick="sendInstantEmailSummary()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    <span>Invia Promemoria Email Ora</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Configurazione Firebase -->
-    <div id="firebaseModalContainer" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-lg w-full overflow-hidden">
-            <div class="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-cloud text-amber-500 text-lg"></i>
-                    <h3 class="font-bold text-slate-800 text-sm">Configurazione Firebase Cloud</h3>
+            
+            <div class="p-5 overflow-y-auto space-y-5 text-xs text-slate-600">
+                <!-- Option 1: Browser Desktop Notifications -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2 font-bold text-slate-800">
+                            <i class="fa-solid fa-desktop text-sky-600"></i>
+                            <span>Notifiche Push Browser & Desktop</span>
+                        </div>
+                        <span id="pushStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600">Disattivate</span>
+                    </div>
+                    <p class="text-slate-500 text-[11px]">Ricevi popup sul tuo computer/smartphone quando apri l'app se ci sono scadenze imminenti o scadute.</p>
+                    <button onclick="requestNotificationPermission()" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg transition shadow-sm">
+                        Attiva Notifiche Desktop
+                    </button>
                 </div>
-                <button onclick="closeFirebaseModal()" class="text-slate-400 hover:text-slate-600 transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-            <div class="p-5 space-y-3 text-xs text-slate-600">
-                <p class="text-slate-500">Incolla qui il JSON di configurazione `firebaseConfig` per attivare la sincronizzazione automatica multi-dispositivo.</p>
-                <textarea id="firebaseConfigTextarea" rows="6" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }' class="w-full p-3 font-mono text-xs border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-                <div class="flex justify-end space-x-2 pt-2">
-                    <button onclick="saveFirebaseConfig()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition">
-                        Salva e Connetti
+
+                <!-- Option 2: EmailJS Automated Background Emails -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center space-x-2 font-bold text-slate-800">
+                        <i class="fa-solid fa-robot text-indigo-600"></i>
+                        <span>Invio Automatico via EmailJS (In Background)</span>
+                    </div>
+                    <p class="text-slate-500 text-[11px]">Incolla le tue chiavi EmailJS gratuite per inviare email automatiche di promemoria quando ci sono scadenze nei prossimi 3 giorni.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                            <label class="block font-semibold mb-0.5">Service ID</label>
+                            <input type="text" id="emailjsServiceId" placeholder="service_xxxx" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-0.5">Template ID</label>
+                            <input type="text" id="emailjsTemplateId" placeholder="template_xxxx" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-0.5">Public Key (User ID)</label>
+                            <input type="text" id="emailjsPublicKey" placeholder="public_xxxx" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-0.5">Email Destinatario</label>
+                            <input type="email" id="emailjsRecipient" placeholder="tua@email.it" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1">
+                        <button onclick="saveEmailJSSettings()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition shadow-sm">
+                            Salva Impostazioni EmailJS
+                        </button>
+                        <button onclick="testEmailJSSend()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition">
+                            Invia Email Prova
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Option 3: Manual Email Client Launch -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex items-center space-x-2 font-bold text-slate-800">
+                        <i class="fa-solid fa-paper-plane text-emerald-600"></i>
+                        <span>Promemoria Email Istantaneo (Mailto)</span>
+                    </div>
+                    <p class="text-slate-500 text-[11px]">Apre il tuo programma email di sistema predefinito con il riepilogo pronto da inviare.</p>
+                    <button onclick="sendInstantEmailSummary()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>Apri Client Email per Riepilogo</span>
                     </button>
                 </div>
             </div>
@@ -1008,9 +1047,12 @@
                         <td class="py-3 px-4"><span class="px-2 py-1 bg-slate-100 rounded-md text-xs text-slate-600 font-medium">${item.category || 'Altro'}</span></td>
                         <td class="py-3 px-4 text-xs text-slate-500">${item.frequency || 'Una Tantum'}</td>
                         <td class="py-3 px-4 text-center">
-                            <div class="flex items-center justify-center space-x-2">
+                            <div class="flex items-center justify-center space-x-1.5">
                                 <button onclick="togglePaidStatus('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition text-xs font-semibold ${item.paid ? 'text-amber-600' : 'text-emerald-600'}" title="Segna come ${item.paid ? 'Da Pagare' : 'Pagato'}">
                                     <i class="fa-solid ${item.paid ? 'fa-rotate-left' : 'fa-check'}"></i>
+                                </button>
+                                <button onclick="addToGoogleCalendar('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-600 transition text-xs" title="Aggiungi a Google Calendar">
+                                    <i class="fa-regular fa-calendar-plus"></i>
                                 </button>
                                 <button onclick="openEditModal('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 text-sky-600 transition text-xs" title="Modifica">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -1048,11 +1090,14 @@
                                 ${item.paid ? 'Segna Da Pagare' : 'Segna Pagato'}
                             </button>
                             <div class="flex items-center space-x-1">
-                                <button onclick="openEditModal('${item.id}')" class="px-3 py-1.5 text-xs text-sky-600 font-semibold hover:bg-sky-50 rounded-xl transition">
-                                    <i class="fa-solid fa-pen-to-square mr-1"></i> Modifica
+                                <button onclick="addToGoogleCalendar('${item.id}')" class="px-2.5 py-1.5 text-xs text-amber-600 font-semibold hover:bg-amber-50 rounded-xl transition" title="Calendar">
+                                    <i class="fa-regular fa-calendar-plus"></i>
                                 </button>
-                                <button onclick="deleteScadenzaItem('${item.id}')" class="px-3 py-1.5 text-xs text-rose-600 font-semibold hover:bg-rose-50 rounded-xl transition">
-                                    <i class="fa-solid fa-trash mr-1"></i> Elimina
+                                <button onclick="openEditModal('${item.id}')" class="px-2.5 py-1.5 text-xs text-sky-600 font-semibold hover:bg-sky-50 rounded-xl transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteScadenzaItem('${item.id}')" class="px-2.5 py-1.5 text-xs text-rose-600 font-semibold hover:bg-rose-50 rounded-xl transition">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                             </div>
                         </div>
@@ -1060,78 +1105,174 @@
                 `;
             }).join('');
         };
+        // Load data on window load
+        window.addEventListener('load', function() {
+            if (!auth) {
+                window.loadLocalStorage();
+                window.renderScadenze();
+            }
+            window.loadEmailJSSettings();
+            window.checkAndShowDesktopNotifications();
+            window.checkAndAutoSendEmailJS();
+        });
 
-        window.copyForGoogleSheets = function() {
-            if (!window.scadenze || window.scadenze.length === 0) {
-                window.showToast('Nessun dato da copiare', 'info');
+        // =========================================================================
+        // 🔔 NOTIFICHE PUSH BROWSER / DESKTOP
+        // =========================================================================
+        window.requestNotificationPermission = function() {
+            if (!('Notification' in window)) {
+                window.showToast('Il tuo browser non supporta le notifiche push', 'error');
                 return;
             }
-            let tsv = 'Data Scadenza\tDescrizione\tImporto (€)\tCategoria\tRicorrenza\tStato\n';
-            window.scadenze.forEach(item => {
-                const status = item.paid ? 'Pagato' : 'Da Pagare';
-                tsv += `${item.date}\t${item.desc}\t${Number(item.price).toFixed(2)}\t${item.category}\t${item.frequency}\t${status}\n`;
-            });
-
-            const textarea = document.createElement('textarea');
-            textarea.value = tsv;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-
-            window.showToast('Copiato! Apri Google Sheets e premi CTRL+V', 'success');
-        };
-
-        window.exportCSV = function() {
-            if (!window.scadenze || window.scadenze.length === 0) {
-                window.showToast('Nessun dato da esportare', 'info');
-                return;
-            }
-            let csv = 'Data;Descrizione;Importo;Categoria;Ricorrenza;Stato\n';
-            window.scadenze.forEach(item => {
-                const status = item.paid ? 'Pagato' : 'Da Pagare';
-                csv += `"${item.date}";"${item.desc}";"${Number(item.price).toFixed(2)}";"${item.category}";"${item.frequency}";"${status}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Scadenze_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            window.showToast('File CSV scaricato con successo', 'success');
-        };
-
-        window.downloadBackupJSON = function() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.scadenze, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `Backup_Scadenze_${new Date().toISOString().split('T')[0]}.json`);
-            dlAnchorElem.click();
-            window.showToast('Backup JSON scaricato', 'success');
-        };
-
-        window.importBackupJSON = function(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (Array.isArray(parsed)) {
-                        window.scadenze = parsed;
-                        window.saveToLocalStorage();
-                        window.renderScadenze();
-                        window.closeBackupModal();
-                        window.showToast('Dati ripristinati con successo!', 'success');
-                    } else {
-                        window.showToast('File non valido', 'error');
-                    }
-                } catch (err) {
-                    window.showToast('Errore nella lettura del file JSON', 'error');
+            Notification.requestPermission().then(permission => {
+                window.updatePushStatusUI();
+                if (permission === 'granted') {
+                    window.showToast('Notifiche desktop attivate con successo!', 'success');
+                    window.checkAndShowDesktopNotifications();
+                } else {
+                    window.showToast('Permesso notifiche negato dal browser', 'info');
                 }
+            });
+        };
+
+        window.updatePushStatusUI = function() {
+            const badge = document.getElementById('pushStatusBadge');
+            if (!badge) return;
+            if ('Notification' in window && Notification.permission === 'granted') {
+                badge.innerText = 'Attive';
+                badge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800';
+            } else {
+                badge.innerText = 'Disattivate';
+                badge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600';
+            }
+        };
+
+        window.checkAndShowDesktopNotifications = function() {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const pending = (window.scadenze || []).filter(i => !i.paid);
+            const dueTodayOrOverdue = pending.filter(i => {
+                const itemDate = new Date(i.date);
+                itemDate.setHours(0,0,0,0);
+                return itemDate <= today;
+            });
+
+            if (dueTodayOrOverdue.length > 0) {
+                new Notification('Scadenze da Saldare!', {
+                    body: `Hai ${dueTodayOrOverdue.length} scadenza/e in sospeso o scadute oggi!`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/1827/1827370.png'
+                });
+            }
+        };
+
+        // =========================================================================
+        // 📅 GOOGLE CALENDAR & .ICS INTEGRATION
+        // =========================================================================
+        window.addToGoogleCalendar = function(id) {
+            const item = window.scadenze.find(i => i.id === id);
+            if (!item) return;
+
+            const title = encodeURIComponent(`Scadenza: ${item.desc}`);
+            const details = encodeURIComponent(`Importo: €${(Number(item.price)||0).toFixed(2)}\nCategoria: ${item.category || 'Altro'}\nRicorrenza: ${item.frequency || 'Una Tantum'}`);
+            const dateFormatted = item.date.replace(/-/g, '');
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateFormatted}/${dateFormatted}&details=${details}`;
+            
+            window.open(url, '_blank');
+            window.showToast('Apertura Google Calendar...', 'info');
+        };
+
+        // =========================================================================
+        // ✉️ EMAILJS AUTOMATED BACKGROUND EMAILS
+        // =========================================================================
+        window.loadEmailJSSettings = function() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('scadenze_emailjs_config') || '{}');
+                if (settings.serviceId) document.getElementById('emailjsServiceId').value = settings.serviceId;
+                if (settings.templateId) document.getElementById('emailjsTemplateId').value = settings.templateId;
+                if (settings.publicKey) document.getElementById('emailjsPublicKey').value = settings.publicKey;
+                if (settings.recipient) document.getElementById('emailjsRecipient').value = settings.recipient;
+                window.updatePushStatusUI();
+            } catch (e) {
+                console.error("Errore caricamento EmailJS config", e);
+            }
+        };
+
+        window.saveEmailJSSettings = function() {
+            const config = {
+                serviceId: document.getElementById('emailjsServiceId').value.trim(),
+                templateId: document.getElementById('emailjsTemplateId').value.trim(),
+                publicKey: document.getElementById('emailjsPublicKey').value.trim(),
+                recipient: document.getElementById('emailjsRecipient').value.trim()
             };
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0]);
+
+            localStorage.setItem('scadenze_emailjs_config', JSON.stringify(config));
+            window.showToast('Impostazioni EmailJS salvate!', 'success');
+        };
+
+        window.checkAndAutoSendEmailJS = function() {
+            try {
+                const config = JSON.parse(localStorage.getItem('scadenze_emailjs_config') || '{}');
+                if (!config.serviceId || !config.templateId || !config.publicKey || !config.recipient) return;
+
+                const lastSentKey = 'scadenze_emailjs_last_sent';
+                const todayStr = new Date().toISOString().split('T')[0];
+                if (localStorage.getItem(lastSentKey) === todayStr) return; // Invia max 1 volta al giorno
+
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const threeDaysLater = new Date(today);
+                threeDaysLater.setDate(today.getDate() + 3);
+
+                const upcoming = (window.scadenze || []).filter(i => {
+                    if (i.paid) return false;
+                    const d = new Date(i.date);
+                    d.setHours(0,0,0,0);
+                    return d >= today && d <= threeDaysLater;
+                });
+
+                if (upcoming.length > 0 && window.emailjs) {
+                    emailjs.init(config.publicKey);
+                    
+                    const summaryList = upcoming.map(i => `- ${i.desc}: €${Number(i.price).toFixed(2)} (Scadenza: ${i.date})`).join('\n');
+                    
+                    emailjs.send(config.serviceId, config.templateId, {
+                        to_email: config.recipient,
+                        message: `Hai ${upcoming.length} scadenze nei prossimi 3 giorni:\n\n${summaryList}`,
+                        subject: `Promemoria Scadenze Imminenti (${upcoming.length})`
+                    }).then(() => {
+                        localStorage.setItem(lastSentKey, todayStr);
+                        window.showToast('Notifica email automatica inviata via EmailJS!', 'success');
+                    }).catch(err => {
+                        console.error('EmailJS error:', err);
+                    });
+                }
+            } catch (e) {
+                console.error("Errore verifica EmailJS", e);
+            }
+        };
+
+        window.testEmailJSSend = function() {
+            window.saveEmailJSSettings();
+            const config = JSON.parse(localStorage.getItem('scadenze_emailjs_config') || '{}');
+            if (!config.serviceId || !config.templateId || !config.publicKey || !config.recipient) {
+                window.showToast('Compila tutti i 4 campi EmailJS per inviare il test', 'error');
+                return;
+            }
+
+            if (window.emailjs) {
+                emailjs.init(config.publicKey);
+                emailjs.send(config.serviceId, config.templateId, {
+                    to_email: config.recipient,
+                    message: "Questo è un messaggio di prova dal tuo Scadenziario!",
+                    subject: "Test Notifiche Scadenziario"
+                }).then(() => {
+                    window.showToast('Email di prova inviata con successo!', 'success');
+                }).catch(err => {
+                    window.showToast('Errore invio: ' + (err.text || JSON.stringify(err)), 'error');
+                });
             }
         };
 

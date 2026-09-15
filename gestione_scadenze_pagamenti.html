@@ -342,13 +342,19 @@
                         </select>
                     </div>
                 </div>
-                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-end space-x-2">
-                    <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">
-                        Annulla
+                <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+                    <button type="button" onclick="addToGoogleCalendar(document.getElementById('editItemId').value)" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold rounded-lg transition flex items-center space-x-1.5" title="Aggiungi a Google Calendar">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        <span>Aggiungi a Google Calendar</span>
                     </button>
-                    <button type="submit" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition shadow">
-                        Salva Modifiche
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition">
+                            Annulla
+                        </button>
+                        <button type="submit" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition shadow">
+                            Salva Modifiche
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1051,8 +1057,8 @@
                                 <button onclick="togglePaidStatus('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition text-xs font-semibold ${item.paid ? 'text-amber-600' : 'text-emerald-600'}" title="Segna come ${item.paid ? 'Da Pagare' : 'Pagato'}">
                                     <i class="fa-solid ${item.paid ? 'fa-rotate-left' : 'fa-check'}"></i>
                                 </button>
-                                <button onclick="addToGoogleCalendar('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-amber-50 text-amber-600 transition text-xs" title="Aggiungi a Google Calendar">
-                                    <i class="fa-regular fa-calendar-plus"></i>
+                                <button onclick="addToGoogleCalendar('${item.id}')" class="p-1.5 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 transition text-xs" title="Aggiungi a Google Calendar">
+                                    <i class="fa-solid fa-calendar-plus"></i>
                                 </button>
                                 <button onclick="openEditModal('${item.id}')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 text-sky-600 transition text-xs" title="Modifica">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -1090,8 +1096,9 @@
                                 ${item.paid ? 'Segna Da Pagare' : 'Segna Pagato'}
                             </button>
                             <div class="flex items-center space-x-1">
-                                <button onclick="addToGoogleCalendar('${item.id}')" class="px-2.5 py-1.5 text-xs text-amber-600 font-semibold hover:bg-amber-50 rounded-xl transition" title="Calendar">
-                                    <i class="fa-regular fa-calendar-plus"></i>
+                                <button onclick="addToGoogleCalendar('${item.id}')" class="px-2.5 py-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 font-bold hover:bg-amber-100 rounded-xl transition flex items-center space-x-1" title="Aggiungi a Google Calendar">
+                                    <i class="fa-solid fa-calendar-plus"></i>
+                                    <span>Calendar</span>
                                 </button>
                                 <button onclick="openEditModal('${item.id}')" class="px-2.5 py-1.5 text-xs text-sky-600 font-semibold hover:bg-sky-50 rounded-xl transition">
                                     <i class="fa-solid fa-pen-to-square"></i>

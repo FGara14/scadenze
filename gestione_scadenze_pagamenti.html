@@ -98,16 +98,28 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <!-- Metrics Dashboard Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Card Totale da Pagare -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Card Totale Mensile -->
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Totale Da Pagare</p>
-                    <h3 id="metricPendingAmount" class="text-2xl font-extrabold text-slate-900 mt-1">€ 0.00</h3>
-                    <p id="metricPendingCount" class="text-xs text-slate-500 mt-0.5">0 scadenze attive</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Totale Mensile</p>
+                    <h3 id="metricMonthlyAmount" class="text-2xl font-extrabold text-sky-600 mt-1">€ 0.00</h3>
+                    <p id="metricMonthlySub" class="text-xs text-slate-500 mt-0.5">0 scadenze questo mese</p>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-wallet"></i>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+            </div>
+
+            <!-- Card Totale Spese Annuali -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Spese Annuali</p>
+                    <h3 id="metricAnnualAmount" class="text-2xl font-extrabold text-indigo-600 mt-1">€ 0.00</h3>
+                    <p id="metricAnnualSub" class="text-xs text-slate-500 mt-0.5">0 scadenze quest'anno</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-chart-line"></i>
                 </div>
             </div>
 
@@ -127,10 +139,10 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Prossimo Pagamento</p>
-                    <h3 id="metricNextDesc" class="text-base font-bold text-slate-800 mt-1 truncate max-w-[160px]">Nessuno</h3>
+                    <h3 id="metricNextDesc" class="text-base font-bold text-slate-800 mt-1 truncate max-w-[130px]">Nessuno</h3>
                     <p id="metricNextDate" class="text-xs text-sky-600 font-semibold mt-0.5">-</p>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
                     <i class="fa-solid fa-calendar-day"></i>
                 </div>
             </div>
@@ -936,13 +948,14 @@
         window.renderScadenze = function() {
             const today = new Date();
             today.setHours(0,0,0,0);
-
-            const searchVal = (document.getElementById('searchInput').value || '').toLowerCase();
-            const sortVal = document.getElementById('sortSelect').value;
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
 
             // Calculate Metrics
-            let totalPending = 0;
-            let pendingCount = 0;
+            let totalMonthlyPending = 0;
+            let totalAnnualAmount = 0;
+            let monthlyCount = 0;
+            let annualCount = 0;
             let overdueCount = 0;
             let totalPaid = 0;
             let paidCount = 0;
@@ -953,12 +966,22 @@
                 itemDate.setHours(0,0,0,0);
                 const price = Number(item.price) || 0;
 
+                // Calcolo esclusivo per le voci con ricorrenza "Annuale"
+                if (item.frequency === 'Annuale') {
+                    totalAnnualAmount += price;
+                    annualCount++;
+                }
+
                 if (item.paid) {
                     totalPaid += price;
                     paidCount++;
                 } else {
-                    totalPending += price;
-                    pendingCount++;
+                    // Check if due in current month (or overdue)
+                    if ((itemDate.getFullYear() === currentYear && itemDate.getMonth() === currentMonth) || itemDate < today) {
+                        totalMonthlyPending += price;
+                        monthlyCount++;
+                    }
+
                     if (itemDate < today) {
                         overdueCount++;
                     }
@@ -971,19 +994,13 @@
             });
 
             // Update Metrics UI
-            document.getElementById('metricPendingAmount').innerText = `€ ${totalPending.toFixed(2)}`;
-            document.getElementById('metricPendingCount').innerText = `${pendingCount} scadenze attive`;
+            document.getElementById('metricMonthlyAmount').innerText = `€ ${totalMonthlyPending.toFixed(2)}`;
+            document.getElementById('metricMonthlySub').innerText = `${monthlyCount} scadenze da pagare questo mese`;
+            document.getElementById('metricAnnualAmount').innerText = `€ ${totalAnnualAmount.toFixed(2)}`;
+            document.getElementById('metricAnnualSub').innerText = `${annualCount} scadenze a ricorrenza annuale`;
             document.getElementById('metricOverdueCount').innerText = overdueCount;
             document.getElementById('metricPaidAmount').innerText = `€ ${totalPaid.toFixed(2)}`;
             document.getElementById('metricPaidCount').innerText = `${paidCount} saldate`;
-
-            if (nextUpcoming) {
-                document.getElementById('metricNextDesc').innerText = nextUpcoming.desc;
-                document.getElementById('metricNextDate').innerText = new Date(nextUpcoming.date).toLocaleDateString('it-IT');
-            } else {
-                document.getElementById('metricNextDesc').innerText = 'Nessuna';
-                document.getElementById('metricNextDate').innerText = '-';
-            }
 
             // Update Tab Badge Counts
             document.getElementById('cnt-all').innerText = window.scadenze.length;
